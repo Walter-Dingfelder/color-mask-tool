@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Color Mask</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h3>Upload Label Image</h3>
+  <input type="file" accept="image/*" id="fileInput" />
+  <br />
+  <canvas id="canvas" width="400" height="600"></canvas>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const maskPath = () => {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.beginPath();
+      ctx.moveTo(w * 0.1, h * 0.95);           // bottom-left
+      ctx.lineTo(w * 0.1, h * 0.18);           // left side up
+      ctx.bezierCurveTo(w * 0.1, h * 0.10, w * 0.25, h * 0.05, w * 0.4, h * 0.05); // left shoulder
+      ctx.lineTo(w * 0.4, h * 0.02);           // left neck
+      ctx.lineTo(w * 0.6, h * 0.02);           // top neck
+      ctx.lineTo(w * 0.6, h * 0.05);           // right neck
+      ctx.bezierCurveTo(w * 0.75, h * 0.05, w * 0.9, h * 0.10, w * 0.9, h * 0.18); // right shoulder
+      ctx.lineTo(w * 0.9, h * 0.95);           // right side down
+      ctx.closePath();
+    };
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        img.src = reader.result;
+      };
+
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Apply masking
+        ctx.globalCompositeOperation = 'destination-in';
+        maskPath();
+        ctx.fill();
+
+        // Reset context mode
+        ctx.globalCompositeOperation = 'source-over';
+
+        // Export masked image
+        const base64Image = canvas.toDataURL('image/png');
+
+        // Send to Wix page
+        window.parent.postMessage(
+          { maskedImageBase64: base64Image },
+          '*'
+        );
+      };
+
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
